@@ -6,14 +6,22 @@
     <title>SWISS KNIFE By TBD DEMO</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
             --neon-blue: #00f3ff;
             --neon-purple: #9d00ff;
+            --neon-green: #00ff88;
+            --neon-red: #ff3366;
+            --neon-yellow: #ffee00;
             --dark-bg: #0a0a1a;
             --card-bg: #131336;
+            --card-inner: #1a1a4f;
             --text-color: #e0e0ff;
             --highlight: #ff00e1;
+            --value-bg: rgba(0, 243, 255, 0.1);
         }
         
         @keyframes gradientBackground {
@@ -33,18 +41,77 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes floatingIcons {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        @keyframes rotateBackground {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Particle animation */
+        .particle {
+            position: fixed;
+            width: 3px;
+            height: 3px;
+            background-color: var(--neon-blue);
+            border-radius: 50%;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        /* Background gradient with blockchain pattern overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(45deg, rgba(10, 10, 26, 0.95), rgba(26, 26, 74, 0.95)),
+                url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30,30 L70,30 L70,70 L30,70 Z' fill='none' stroke='%230af' stroke-width='0.5' opacity='0.3'/%3E%3Cpath d='M10,10 L90,10 L90,90 L10,90 Z' fill='none' stroke='%230af' stroke-width='0.5' opacity='0.2'/%3E%3Cpath d='M50,0 L50,100' fill='none' stroke='%230af' stroke-width='0.5' opacity='0.2'/%3E%3Cpath d='M0,50 L100,50' fill='none' stroke='%230af' stroke-width='0.5' opacity='0.2'/%3E%3C/svg%3E");
+            z-index: -2;
+        }
+        
         body { 
-            background: var(--dark-bg);
+            background: transparent;
             color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Rajdhani', sans-serif;
             padding: 30px; 
-            background-image: linear-gradient(45deg, #0a0a1a 0%, #1a1a4a 100%);
             background-size: 200% 200%;
             animation: gradientBackground 15s ease infinite;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* Radial glow effect behind main container */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150%;
+            height: 150%;
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.1) 0%, rgba(157, 0, 255, 0.05) 30%, rgba(10, 10, 26, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
         }
         
         .container {
             max-width: 900px;
+            position: relative;
         }
         
         h1 {
@@ -52,13 +119,70 @@
             text-transform: uppercase;
             letter-spacing: 3px;
             text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-purple);
-            font-weight: 800;
+            font-weight: 900;
+            font-family: 'Orbitron', sans-serif;
             text-align: center;
             margin-bottom: 40px;
+            position: relative;
+        }
+        
+        /* Crypto icons floating around the title */
+        .crypto-icons {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .crypto-icon {
+            position: absolute;
+            font-size: 1.5rem;
+            opacity: 0.7;
+            animation: floatingIcons 4s ease-in-out infinite;
+            color: var(--neon-yellow);
+            text-shadow: 0 0 5px var(--neon-yellow);
+        }
+        
+        .crypto-icon:nth-child(1) {
+            top: -30px;
+            left: 10%;
+            animation-delay: 0s;
+            color: var(--neon-green);
+        }
+        
+        .crypto-icon:nth-child(2) {
+            top: 20px;
+            right: 15%;
+            animation-delay: 0.5s;
+            color: var(--neon-purple);
+        }
+        
+        .crypto-icon:nth-child(3) {
+            bottom: -20px;
+            left: 20%;
+            animation-delay: 1s;
+            color: var(--neon-blue);
+        }
+        
+        .crypto-icon:nth-child(4) {
+            bottom: 10px;
+            right: 10%;
+            animation-delay: 1.5s;
+            color: var(--neon-red);
+        }
+        
+        .crypto-icon:nth-child(5) {
+            top: 10px;
+            left: 30%;
+            animation-delay: 2s;
+            color: var(--neon-yellow);
         }
         
         .card {
-            background: var(--card-bg);
+            background: rgba(19, 19, 54, 0.8);
             border: 1px solid var(--neon-blue);
             border-radius: 15px;
             padding: 10px;
@@ -66,6 +190,27 @@
             margin-bottom: 30px;
             animation: neonGlow 3s infinite, fadeIn 1s;
             backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Hexagon pattern background for cards */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30,5 L55,20 L55,40 L30,55 L5,40 L5,20 Z' fill='none' stroke='%230af' stroke-width='0.5' opacity='0.15'/%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        .card-body {
+            position: relative;
+            z-index: 1;
         }
         
         .form-control {
@@ -73,15 +218,32 @@
             border: 1px solid var(--neon-blue);
             color: var(--text-color);
             border-radius: 8px;
-            padding: 12px;
+            padding: 12px 15px 12px 40px;
             transition: all 0.3s ease;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            font-size: 1.1rem;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--neon-blue);
+            z-index: 10;
+        }
+        
+        .input-group {
+            position: relative;
         }
         
         .form-control:focus {
             background-color: rgba(0, 0, 0, 0.7);
             border-color: var(--highlight);
             color: white;
-            box-shadow: 0 0 10px var(--highlight);
+            box-shadow: 0 0 15px var(--highlight);
         }
         
         .btn-primary {
@@ -94,12 +256,34 @@
             padding: 12px 24px;
             transition: all 0.3s ease;
             box-shadow: 0 0 15px rgba(0, 243, 255, 0.5);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
         }
         
         .btn-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.8);
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.8);
             background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
+        }
+        
+        .btn-primary:hover::after {
+            left: 100%;
+            opacity: 1;
+            transition: all 0.8s ease;
         }
         
         .form-label {
@@ -109,6 +293,7 @@
             margin-bottom: 8px;
             text-transform: uppercase;
             font-size: 0.9rem;
+            font-family: 'Orbitron', sans-serif;
         }
         
         .loading {
@@ -116,6 +301,12 @@
             text-align: center;
             padding: 30px;
             color: var(--neon-blue);
+        }
+        
+        .loading p {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
         
         .spinner-border {
@@ -138,6 +329,7 @@
             font-weight: 700;
             margin-bottom: 25px;
             text-shadow: 0 0 5px var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
         }
         
         h4 {
@@ -150,10 +342,45 @@
             padding-bottom: 10px;
             margin-bottom: 15px;
             display: inline-block;
+            font-family: 'Orbitron', sans-serif;
         }
         
         p strong {
             color: var(--neon-blue);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Better value display with better contrast */
+        .data-value {
+            display: inline-block;
+            background: var(--value-bg);
+            color: var(--text-color);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--neon-blue);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            min-width: 80px;
+            text-align: right;
+            margin-left: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .data-value:hover {
+            background: rgba(0, 243, 255, 0.2);
+            transform: translateX(3px);
+        }
+        
+        /* Color highlighting for PnL values */
+        .positive-value {
+            border-left-color: var(--neon-green);
+            color: var(--neon-green);
+        }
+        
+        .negative-value {
+            border-left-color: var(--neon-red);
+            color: var(--neon-red);
         }
         
         .text-muted {
@@ -162,8 +389,11 @@
         
         hr {
             border-color: var(--neon-purple);
-            opacity: 0.5;
+            opacity: 0.3;
             margin: 25px 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-purple), transparent);
+            border: none;
         }
         
         .cyber-badge {
@@ -174,23 +404,120 @@
             border-radius: 8px;
             font-size: 0.8em;
             text-transform: uppercase;
+            margin-left: 10px;
+            display: inline-block;
+            animation: pulse 2s infinite;
+            font-family: 'Orbitron', sans-serif;
+            vertical-align: middle;
+        }
+        
+        /* Blockchain nodes decoration */
+        .node-decoration {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border: 1px dashed var(--neon-blue);
+            opacity: 0.3;
+            z-index: -1;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .node-1 {
+            top: -30px;
+            right: -30px;
+            animation: rotateBackground 60s linear infinite;
+        }
+        
+        .node-2 {
+            bottom: -50px;
+            left: -20px;
+            width: 100px;
+            height: 100px;
+            animation: rotateBackground 40s linear infinite reverse;
+        }
+        
+        /* Web3 theme enhancement */
+        .web3-theme {
+            position: relative;
+        }
+        
+        .web3-bg-element {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0.1;
+            z-index: -1;
+            color: var(--neon-blue);
+            pointer-events: none;
+        }
+        
+        .eth-icon {
+            top: 10%;
+            right: 5%;
+            font-size: 4rem;
+        }
+        
+        .btc-icon {
+            bottom: 10%;
+            left: 5%;
+            font-size: 3.5rem;
+        }
+        
+        .code-icon {
+            top: 40%;
+            left: 8%;
+            font-size: 2.5rem;
+        }
+        
+        .nft-icon {
+            bottom: 30%;
+            right: 8%;
+            font-size: 2.8rem;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1><i class="fas fa-chart-line me-2"></i>SWISS KNIFE By TBD DEMO</h1>
+    <!-- Crypto particles for background -->
+    <div id="particles"></div>
+    
+    <div class="container web3-theme">
+        <!-- Floating crypto icons around title -->
+        <div class="crypto-icons">
+            <i class="fab fa-ethereum crypto-icon"></i>
+            <i class="fab fa-bitcoin crypto-icon"></i>
+            <i class="fas fa-link crypto-icon"></i>
+            <i class="fas fa-cube crypto-icon"></i>
+            <i class="fas fa-chart-line crypto-icon"></i>
+        </div>
+        
+        <!-- Web3 background elements -->
+        <i class="fab fa-ethereum web3-bg-element eth-icon"></i>
+        <i class="fab fa-bitcoin web3-bg-element btc-icon"></i>
+        <i class="fas fa-code web3-bg-element code-icon"></i>
+        <i class="fas fa-image web3-bg-element nft-icon"></i>
+        
+        <!-- Node decoration -->
+        <div class="node-decoration node-1"></div>
+        <div class="node-decoration node-2"></div>
+        
+        <h1><i class="fas fa-cube me-2"></i>SWISS KNIFE By TBD DEMO</h1>
         
         <div class="card mb-4">
             <div class="card-body">
                 <form id="analyzeForm">
                     <div class="mb-3">
                         <label for="token_address" class="form-label"><i class="fas fa-microchip me-2"></i>Token Address</label>
-                        <input type="text" class="form-control" id="token_address" name="token_address" required placeholder="0x...">
+                        <div class="input-group">
+                            <i class="fas fa-microchip input-icon"></i>
+                            <input type="text" class="form-control" id="token_address" name="token_address" required placeholder="0x...">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="wallet_address" class="form-label"><i class="fas fa-wallet me-2"></i>Wallet Address</label>
-                        <input type="text" class="form-control" id="wallet_address" name="wallet_address" required placeholder="0x...">
+                        <div class="input-group">
+                            <i class="fas fa-wallet input-icon"></i>
+                            <input type="text" class="form-control" id="wallet_address" name="wallet_address" required placeholder="0x...">
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100"><i class="fas fa-bolt me-2"></i>Analyze</button>
                 </form>
@@ -201,46 +528,46 @@
             <div class="spinner-border" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-3">Analyzing transactions in the blockchain timeline... <br>Please wait, this may take a few moments.</p>
+            <p class="mt-3">Analyzing blockchain transactions... <br>Please wait, scanning the ledger...</p>
         </div>
 
         <div class="result-card card">
             <div class="card-body">
-                <h2 class="card-title"><i class="fas fa-analytics me-2"></i>Analysis Results</h2>
+                <h2 class="card-title"><i class="fas fa-chart-network me-2"></i>Analysis Results</h2>
                 <div class="row">
                     <div class="col-md-6">
                         <h4><i class="fas fa-info-circle me-2"></i>Token Info</h4>
-                        <p><strong>Name:</strong> <span id="token_name"></span> <span class="cyber-badge ms-2" id="token_symbol_badge"></span></p>
-                        <p><strong>Symbol:</strong> <span id="token_symbol"></span></p>
-                        <p><strong>Current Balance:</strong> <span id="current_balance"></span></p>
+                        <p><strong>Name:</strong> <span id="token_name" class="data-value"></span> <span class="cyber-badge" id="token_symbol_badge"></span></p>
+                        <p><strong>Symbol:</strong> <span id="token_symbol" class="data-value"></span></p>
+                        <p><strong>Current Balance:</strong> <span id="current_balance" class="data-value"></span></p>
                     </div>
                     <div class="col-md-6">
                         <h4><i class="fas fa-exchange-alt me-2"></i>Transaction Summary</h4>
-                        <p><strong>Total Buys:</strong> <span id="buy_count"></span></p>
-                        <p><strong>Total Sells:</strong> <span id="sell_count"></span></p>
+                        <p><strong>Total Buys:</strong> <span id="buy_count" class="data-value"></span></p>
+                        <p><strong>Total Sells:</strong> <span id="sell_count" class="data-value"></span></p>
                     </div>
                 </div>
                 <hr>
                 <div class="row">
                     <div class="col-md-6">
                         <h4><i class="fas fa-coins me-2"></i>Token Statistics</h4>
-                        <p><strong>Total Tokens Bought:</strong> <span id="total_tokens_bought"></span></p>
-                        <p><strong>Total Tokens Sold:</strong> <span id="total_tokens_sold"></span></p>
+                        <p><strong>Total Tokens Bought:</strong> <span id="total_tokens_bought" class="data-value"></span></p>
+                        <p><strong>Total Tokens Sold:</strong> <span id="total_tokens_sold" class="data-value"></span></p>
                     </div>
                     <div class="col-md-6">
                         <h4><i class="fab fa-ethereum me-2"></i>ETH Statistics</h4>
-                        <p><strong>Total ETH Invested:</strong> <span id="total_in_eth"></span></p>
-                        <p><strong>Total ETH Returned:</strong> <span id="total_out_eth"></span></p>
-                        <p><strong>Total Gas Costs:</strong> <span id="total_gas_eth"></span> ETH</p>
+                        <p><strong>Total ETH Invested:</strong> <span id="total_in_eth" class="data-value"></span></p>
+                        <p><strong>Total ETH Returned:</strong> <span id="total_out_eth" class="data-value"></span></p>
+                        <p><strong>Total Gas Costs:</strong> <span id="total_gas_eth" class="data-value"></span> ETH</p>
                     </div>
                 </div>
                 <hr>
                 <div class="row">
                     <div class="col-md-12">
                         <h4><i class="fas fa-chart-pie me-2"></i>PnL Summary</h4>
-                        <p><strong>Current Holdings Value:</strong> <span id="current_holdings_eth"></span> ETH (<span id="current_holdings_usd"></span> USD)</p>
-                        <p><strong>Realized PnL:</strong> <span id="realized_pnl_eth"></span> ETH (<span id="realized_pnl_usd"></span> USD)</p>
-                        <p><strong>Unrealized PnL:</strong> <span id="unrealized_pnl_eth"></span> ETH (<span id="unrealized_pnl_usd"></span> USD)</p>
+                        <p><strong>Current Holdings Value:</strong> <span id="current_holdings_eth" class="data-value"></span> ETH (<span id="current_holdings_usd" class="data-value"></span> USD)</p>
+                        <p><strong>Realized PnL:</strong> <span id="realized_pnl_eth" class="data-value"></span> ETH (<span id="realized_pnl_usd" class="data-value"></span> USD)</p>
+                        <p><strong>Unrealized PnL:</strong> <span id="unrealized_pnl_eth" class="data-value"></span> ETH (<span id="unrealized_pnl_usd" class="data-value"></span> USD)</p>
                     </div>
                 </div>
             </div>
@@ -250,6 +577,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
+            // Create floating particles
+            createParticles();
+            
             $('#analyzeForm').on('submit', function(e) {
                 e.preventDefault();
                 
@@ -280,15 +610,15 @@
                             
                             // Color code the PnL values
                             if (parseFloat(data.realized_pnl_eth) > 0) {
-                                $('#realized_pnl_eth, #realized_pnl_usd').css('color', '#00ff88');
+                                $('#realized_pnl_eth, #realized_pnl_usd').addClass('positive-value');
                             } else {
-                                $('#realized_pnl_eth, #realized_pnl_usd').css('color', '#ff3366');
+                                $('#realized_pnl_eth, #realized_pnl_usd').addClass('negative-value');
                             }
                             
                             if (parseFloat(data.unrealized_pnl_eth) > 0) {
-                                $('#unrealized_pnl_eth, #unrealized_pnl_usd').css('color', '#00ff88');
+                                $('#unrealized_pnl_eth, #unrealized_pnl_usd').addClass('positive-value');
                             } else {
-                                $('#unrealized_pnl_eth, #unrealized_pnl_usd').css('color', '#ff3366');
+                                $('#unrealized_pnl_eth, #unrealized_pnl_usd').addClass('negative-value');
                             }
                             
                             $('.result-card').show();
@@ -308,6 +638,43 @@
                     }
                 });
             });
+            
+            // Create blockchain-themed particles
+            function createParticles() {
+                const particleCount = 30;
+                const particlesContainer = document.getElementById('particles');
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    
+                    // Random position
+                    const posX = Math.random() * window.innerWidth;
+                    const posY = Math.random() * window.innerHeight;
+                    
+                    // Random size
+                    const size = Math.random() * 3 + 1;
+                    
+                    // Random color
+                    const colors = ['#00f3ff', '#9d00ff', '#00ff88', '#ffee00'];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Apply styles
+                    particle.style.left = `${posX}px`;
+                    particle.style.top = `${posY}px`;
+                    particle.style.width = `${size}px`;
+                    particle.style.height = `${size}px`;
+                    particle.style.backgroundColor = color;
+                    
+                    // Add animation
+                    const duration = Math.random() * 30 + 10;
+                    const delay = Math.random() * 5;
+                    
+                    particle.style.animation = `floatingIcons ${duration}s ease-in-out ${delay}s infinite`;
+                    
+                    document.body.appendChild(particle);
+                }
+            }
         });
     </script>
 </body>
