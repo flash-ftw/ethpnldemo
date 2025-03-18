@@ -474,6 +474,40 @@
             right: 8%;
             font-size: 2.8rem;
         }
+        
+        /* Error card styling */
+        .error-card {
+            border-color: var(--neon-red) !important;
+            box-shadow: 0 0 15px var(--neon-red) !important;
+            animation: neonGlow 2s infinite, fadeIn 0.5s !important;
+        }
+        
+        .error-card h4 {
+            color: var(--neon-red);
+            border-color: var(--neon-red);
+        }
+        
+        .error-card .fa-exclamation-triangle {
+            color: var(--neon-red);
+        }
+        
+        .error-message {
+            background: rgba(255, 51, 102, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--neon-red);
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 500;
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-top: 10px;
+        }
+        
+        @keyframes errorGlow {
+            0% { box-shadow: 0 0 5px var(--neon-red), 0 0 10px var(--neon-red); }
+            50% { box-shadow: 0 0 15px var(--neon-red), 0 0 20px var(--neon-red); }
+            100% { box-shadow: 0 0 5px var(--neon-red), 0 0 10px var(--neon-red); }
+        }
     </style>
 </head>
 <body>
@@ -590,6 +624,7 @@
                     url: '/analyze',
                     method: 'POST',
                     data: $(this).serialize(),
+                    timeout: 180000, // 3 minute timeout
                     success: function(response) {
                         $('.loading').hide();
                         
@@ -623,21 +658,51 @@
                             
                             $('.result-card').show();
                         } else {
-                            alert('Error: ' + response.error);
+                            showError(response.error);
                         }
                     },
                     error: function(xhr, status, error) {
                         $('.loading').hide();
                         let errorMessage = 'An error occurred while processing your request.';
                         
+                        // Try to extract detailed error information
                         if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMessage = xhr.responseJSON.error;
+                        } else if (status === 'timeout') {
+                            errorMessage = 'The request timed out. The analysis is taking too long. Please try again with a different token or wallet address.';
+                        } else if (error) {
+                            errorMessage = 'Error: ' + error;
                         }
                         
-                        alert('Error: ' + errorMessage);
+                        showError(errorMessage);
                     }
                 });
             });
+            
+            // Function to show a styled error message
+            function showError(message) {
+                // Create or show error card
+                if ($('#errorCard').length === 0) {
+                    const errorCard = `
+                        <div id="errorCard" class="card mb-4 error-card">
+                            <div class="card-body">
+                                <h4><i class="fas fa-exclamation-triangle me-2"></i>Error</h4>
+                                <div class="error-message">${message}</div>
+                                <button class="btn btn-sm btn-outline-light mt-3" onclick="$('#errorCard').remove()">Dismiss</button>
+                            </div>
+                        </div>
+                    `;
+                    $('.container').append(errorCard);
+                } else {
+                    $('#errorCard .error-message').html(message);
+                    $('#errorCard').show();
+                }
+                
+                // Scroll to error
+                $('html, body').animate({
+                    scrollTop: $("#errorCard").offset().top - 100
+                }, 500);
+            }
             
             // Create blockchain-themed particles
             function createParticles() {

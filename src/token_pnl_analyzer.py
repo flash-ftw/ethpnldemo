@@ -551,111 +551,163 @@ class TokenPnLAnalyzer:
             return None
 
     def analyze_pnl(self, wallet_address, token_address):
-        """Analyze PnL for a given token"""
-        # Get token transfers
-        transfers = self.get_token_transfers(wallet_address, token_address)
-        if not transfers:
-            return None
-
-        # Initialize variables
-        total_tokens_bought = 0
-        total_tokens_sold = 0
-        total_in_eth = 0
-        total_out_eth = 0
-        total_gas_eth = 0
-        buy_count = 0
-        sell_count = 0
-        gas_price = self.get_eth_price()
-
-        print("\nAnalyzing transactions...")
-        # Process each transfer with progress bar
-        for transfer in tqdm(transfers, desc="Processing transactions", unit="tx"):
-            # Get transaction details including ETH value
-            tx_details = self.get_transaction(transfer['hash'])
-            tx_value = tx_details['eth_value']
+        """Analyze profit and loss for a token"""
+        try:
+            print(f"Starting analysis for wallet {wallet_address} and token {token_address}")
             
-            # Calculate gas cost
-            gas_used = int(transfer['gasUsed'])
-            gas_price = int(transfer['gasPrice'])
-            gas_cost_eth = (gas_used * gas_price) / 1e18
-            total_gas_eth += gas_cost_eth
-
-            # Convert token amount to decimal
-            token_amount = float(transfer['value']) / (10 ** int(transfer['tokenDecimal']))
+            # Normalize addresses
+            wallet_address = self.w3.to_checksum_address(wallet_address)
+            token_address = self.w3.to_checksum_address(token_address)
             
-            # Get historical token price at transaction time
-            timestamp = int(transfer['timeStamp'])
-            historical_price = self.get_historical_token_price(token_address, timestamp)
+            # Get token transfer events
+            print(f"Fetching token transfers for {wallet_address} and {token_address}")
+            transfers = self.get_token_transfers(wallet_address, token_address)
             
-            # If we have historical price, use it to calculate ETH value
-            if historical_price:
-                eth_value = token_amount * historical_price
-                if transfer['to'].lower() == wallet_address.lower():
-                    total_in_eth += eth_value
-                else:
-                    total_out_eth += eth_value
-
-            # Determine if it's a buy or sell
-            if transfer['to'].lower() == wallet_address.lower():
-                print(f"Buy transaction - Added {eth_value if historical_price else tx_value} ETH to total_in_eth (now {total_in_eth})")
-                total_tokens_bought += token_amount
-                buy_count += 1
-            else:
-                print(f"Sell transaction - Added {eth_value if historical_price else tx_value} ETH to total_out_eth (now {total_out_eth})")
-                total_tokens_sold += token_amount
-                sell_count += 1
-
-        # Get current token balance and price
-        token_contract = self.w3.eth.contract(
-            address=self.w3.to_checksum_address(token_address),
-            abi=self.token_abi
-        )
-        current_balance = total_tokens_bought - total_tokens_sold
-        current_price_eth = self.get_token_price(token_address)
-        
-        # Get token info
-        token_symbol = token_contract.functions.symbol().call()
-        token_name = token_contract.functions.name().call()
-        
-        # Calculate current holdings value
-        current_holdings_eth = current_balance * current_price_eth if current_price_eth else 0
-        
-        # Get ETH price for USD conversion
-        eth_price_usd = self.get_eth_price()
-        
-        # Calculate PnL
-        realized_pnl_eth = total_out_eth - total_in_eth - total_gas_eth
-        unrealized_pnl_eth = current_holdings_eth
-        
-        # Convert to USD
-        if eth_price_usd:
-            realized_pnl_usd = realized_pnl_eth * eth_price_usd
-            unrealized_pnl_usd = unrealized_pnl_eth * eth_price_usd
+            if not transfers:
+                print("No transfers found")
+                return None
+                
+            # Load token contract
+            try:
+                token_contract = self.w3.eth.contract(
+                    address=token_address,
+                    abi=self.token_abi
+                )
+                token_name = token_contract.functions.name().call()
+                token_symbol = token_contract.functions.symbol().call()
+                token_decimals = token_contract.functions.decimals().call()
+                print(f"Token loaded: {token_name} ({token_symbol}) with {token_decimals} decimals")
+            except Exception as e:
+                print(f"Error loading token contract: {str(e)}")
+                # Fallback to basic names
+                token_name = "Unknown Token"
+                token_symbol = "????"
+                token_decimals = 18
+                
+            # Initialize counters
+            buy_count = 0
+            sell_count = 0
+            total_tokens_bought = 0
+            total_tokens_sold = 0
+            total_in_eth = 0
+            total_out_eth = 0
+            total_gas_eth = 0
+            
+            # Get current token balance
+            try:
+                current_balance = token_contract.functions.balanceOf(wallet_address).call() / (10 ** token_decimals)
+                print(f"Current balance: {current_balance} {token_symbol}")
+            except Exception as e:
+                print(f"Error getting token balance: {str(e)}")
+                current_balance = 0
+                
+            # Get current token price
+            try:
+                # Try first with Uniswap price
+                current_price_eth = self.get_token_price_eth(token_address)
+                if current_price_eth is None:
+                    # Fallback to DEX Screener
+                    current_price_eth = self.get_token_price_from_dexscreener(token_address)
+                
+                print(f"Current token price: {current_price_eth} ETH")
+            except Exception as e:
+                print(f"Error getting token price: {str(e)}")
+                current_price_eth = 0
+                
+            # Get current ETH price
+            try:
+                eth_price_usd = self.get_eth_price() or 2000  # Default to 2000 if not available
+                print(f"Current ETH price: ${eth_price_usd}")
+            except Exception as e:
+                print(f"Error getting ETH price: {str(e)}")
+                eth_price_usd = 2000  # Default value
+                
+            # Process transfers
+            print(f"Analyzing transactions...")
+            transfers = sorted(transfers, key=lambda x: int(x.get('timeStamp', 0)))
+            
+            with tqdm(total=len(transfers), desc="Processing transactions") as pbar:
+                for tx in transfers:
+                    try:
+                        tx_hash = tx['hash']
+                        
+                        # Check if incoming or outgoing
+                        is_buy = tx['to'].lower() == wallet_address.lower()
+                        is_sell = tx['from'].lower() == wallet_address.lower()
+                        
+                        # Get transaction value
+                        tx_value = self.get_transaction(tx_hash)
+                        print(f"Total value for {tx_hash}: {tx_value['eth_value']} ETH")
+                        
+                        # Process buy transaction
+                        if is_buy:
+                            buy_count += 1
+                            amount = float(tx['value']) / (10 ** token_decimals)
+                            total_tokens_bought += amount
+                            
+                            # If we can't determine ETH value from transaction, estimate
+                            total_in_eth += tx_value['eth_value']
+                            print(f"Buy transaction - Added {tx_value['eth_value']} ETH to total_in_eth (now {total_in_eth})")
+                            
+                        # Process sell transaction
+                        elif is_sell:
+                            sell_count += 1
+                            amount = float(tx['value']) / (10 ** token_decimals)
+                            total_tokens_sold += amount
+                            
+                            # If we can't determine ETH value from transaction, estimate
+                            total_out_eth += tx_value['eth_value']
+                            print(f"Sell transaction - Added {tx_value['eth_value']} ETH to total_out_eth (now {total_out_eth})")
+                    except Exception as e:
+                        print(f"Error processing transaction {tx.get('hash', 'unknown')}: {str(e)}")
+                    finally:
+                        pbar.update(1)
+                    
+            # Calculate holdings and PnL
+            current_holdings_eth = current_balance * current_price_eth
             current_holdings_usd = current_holdings_eth * eth_price_usd
-        else:
-            realized_pnl_usd = 0
-            unrealized_pnl_usd = 0
-            current_holdings_usd = 0
-
-        return {
-            'token_name': token_name,
-            'token_symbol': token_symbol,
-            'buy_count': buy_count,
-            'sell_count': sell_count,
-            'total_tokens_bought': total_tokens_bought,
-            'total_tokens_sold': total_tokens_sold,
-            'current_balance': current_balance,
-            'total_in_eth': total_in_eth,
-            'total_out_eth': total_out_eth,
-            'total_gas_eth': total_gas_eth,
-            'current_price_eth': current_price_eth,
-            'current_holdings_eth': current_holdings_eth,
-            'current_holdings_usd': current_holdings_usd,
-            'realized_pnl_eth': realized_pnl_eth,
-            'realized_pnl_usd': realized_pnl_usd,
-            'unrealized_pnl_eth': unrealized_pnl_eth,
-            'unrealized_pnl_usd': unrealized_pnl_usd
-        }
+            
+            # Calculate realized PnL (what we've already sold)
+            realized_pnl_eth = total_out_eth - total_in_eth * (total_tokens_sold / total_tokens_bought) if total_tokens_bought > 0 else 0
+            realized_pnl_usd = realized_pnl_eth * eth_price_usd
+            
+            # Calculate unrealized PnL (what we're still holding)
+            cost_basis_per_token = total_in_eth / total_tokens_bought if total_tokens_bought > 0 else 0
+            unrealized_pnl_eth = current_holdings_eth - (current_balance * cost_basis_per_token)
+            unrealized_pnl_usd = unrealized_pnl_eth * eth_price_usd
+            
+            print("\nAnalysis Results:")
+            print(f"Token: {token_name} ({token_symbol})")
+            print(f"Current Balance: {current_balance} {token_symbol}")
+            print(f"Total Bought: {total_tokens_bought} {token_symbol} for {total_in_eth} ETH")
+            print(f"Total Sold: {total_tokens_sold} {token_symbol} for {total_out_eth} ETH")
+            print(f"Realized PnL: {realized_pnl_eth} ETH (${realized_pnl_usd})")
+            print(f"Unrealized PnL: {unrealized_pnl_eth} ETH (${unrealized_pnl_usd})")
+            
+            return {
+                'token_name': token_name,
+                'token_symbol': token_symbol,
+                'buy_count': buy_count,
+                'sell_count': sell_count,
+                'total_tokens_bought': total_tokens_bought,
+                'total_tokens_sold': total_tokens_sold,
+                'current_balance': current_balance,
+                'total_in_eth': total_in_eth,
+                'total_out_eth': total_out_eth,
+                'total_gas_eth': total_gas_eth,
+                'current_price_eth': current_price_eth,
+                'current_holdings_eth': current_holdings_eth,
+                'current_holdings_usd': current_holdings_usd,
+                'realized_pnl_eth': realized_pnl_eth,
+                'realized_pnl_usd': realized_pnl_usd,
+                'unrealized_pnl_eth': unrealized_pnl_eth,
+                'unrealized_pnl_usd': unrealized_pnl_usd
+            }
+        except Exception as e:
+            import traceback
+            print(f"ERROR in analyze_pnl: {str(e)}")
+            print(f"Detailed error: {traceback.format_exc()}")
+            raise Exception(f"Failed to analyze token: {str(e)}")
 
 def main():
     """Main function"""
