@@ -96,6 +96,12 @@ class TokenPnLAnalyzer:
                     return data['result']
                 elif data['status'] == '0' and data['message'] == 'No transactions found':
                     return []
+                elif data['message'] == 'NOTOK':
+                    # Common issues with NOTOK response
+                    error_msg = "Invalid Etherscan API key or API request limit exceeded"
+                    if 'result' in data and isinstance(data['result'], str) and len(data['result']) > 0:
+                        error_msg = data['result']  # Sometimes more info is in result
+                    raise Exception(f"Etherscan API error: {error_msg}")
                 else:
                     raise Exception(f"Etherscan API error: {data['message']}")
             else:

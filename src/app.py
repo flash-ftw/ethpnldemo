@@ -17,7 +17,7 @@ def analyze():
         wallet_address = request.form.get('wallet_address')
         
         # Use hardcoded API key instead of getting it from the form
-        etherscan_key = "your_etherscan_api_key_here"  # Replace with your actual API key
+        etherscan_key = "AYXNSHGVZ33DYEYNPQMHVS2PT8GQ82T5CW"  # Your Etherscan API key
         
         # Set environment variable
         os.environ['ETHERSCAN_API_KEY'] = etherscan_key
