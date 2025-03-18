@@ -15,7 +15,9 @@ def analyze():
         # Get input data
         token_address = request.form.get('token_address')
         wallet_address = request.form.get('wallet_address')
-        etherscan_key = request.form.get('etherscan_key')
+        
+        # Use hardcoded API key instead of getting it from the form
+        etherscan_key = "your_etherscan_api_key_here"  # Replace with your actual API key
         
         # Set environment variable
         os.environ['ETHERSCAN_API_KEY'] = etherscan_key
@@ -56,9 +58,10 @@ def analyze():
             })
             
     except Exception as e:
+        app.logger.error(f"Error in analyze route: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f"Error analyzing token: {str(e)}"
         })
 
 # This is important for Vercel

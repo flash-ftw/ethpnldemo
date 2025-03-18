@@ -88,15 +88,24 @@ class TokenPnLAnalyzer:
             'apikey': self.etherscan_api_key
         }
         
-        response = requests.get(self.etherscan_url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            if data['status'] == '1':
-                return data['result']
+        try:
+            response = requests.get(self.etherscan_url, params=params, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                if data['status'] == '1':
+                    return data['result']
+                elif data['status'] == '0' and data['message'] == 'No transactions found':
+                    return []
+                else:
+                    raise Exception(f"Etherscan API error: {data['message']}")
             else:
-                raise Exception(f"Etherscan API error: {data['message']}")
-        else:
-            raise Exception(f"Failed to fetch data: {response.status_code}")
+                raise Exception(f"Failed to fetch data: HTTP {response.status_code} - Please check your token address and try again.")
+        except requests.exceptions.Timeout:
+            raise Exception("Etherscan API request timed out. Please try again later.")
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Network error when connecting to Etherscan: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Error fetching token transfers: {str(e)}")
 
     def get_internal_transactions(self, tx_hash):
         """Get internal transactions for a transaction hash"""
@@ -107,16 +116,22 @@ class TokenPnLAnalyzer:
             'apikey': self.etherscan_api_key
         }
         
-        response = requests.get(self.etherscan_url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            if data['status'] == '1':
-                # Convert values to ETH
-                for tx in data['result']:
-                    if 'value' in tx:
-                        tx['value'] = float(tx['value']) / 1e18
-                return data['result']
-        return []
+        try:
+            response = requests.get(self.etherscan_url, params=params, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                if data['status'] == '1':
+                    # Convert values to ETH
+                    for tx in data['result']:
+                        if 'value' in tx:
+                            tx['value'] = float(tx['value']) / 1e18
+                    return data['result']
+                elif data['status'] == '0' and data['message'] == 'No transactions found':
+                    return []
+            return []
+        except Exception:
+            # Just return empty array if there's an error, since this is a supplementary call
+            return []
 
     def get_transaction_receipt(self, tx_hash):
         """Get transaction receipt details"""
