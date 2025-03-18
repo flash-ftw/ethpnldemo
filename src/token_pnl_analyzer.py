@@ -53,6 +53,143 @@ class TokenPnLAnalyzer:
         # WETH address
         self.weth_address = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
         
+        # Define stablecoin addresses (lowercase)
+        self.stablecoins = {
+            # USDC
+            '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48': {
+                'symbol': 'USDC',
+                'decimals': 6
+            },
+            # USDT
+            '0xdac17f958d2ee523a2206206994597c13d831ec7': {
+                'symbol': 'USDT', 
+                'decimals': 6
+            },
+            # DAI
+            '0x6b175474e89094c44da98b954eedeac495271d0f': {
+                'symbol': 'DAI',
+                'decimals': 18
+            },
+            # FRAX
+            '0x853d955acef822db058eb8505911ed77f175b99e': {
+                'symbol': 'FRAX',
+                'decimals': 18
+            },
+            # LUSD
+            '0x5f98805a4e8be255a32880fdec7f6728c6568ba0': {
+                'symbol': 'LUSD',
+                'decimals': 18
+            },
+            # USDC.e (Bridged USDC)
+            '0x2791bca1f2de4661ed88a30c99a7a9449aa84174': {
+                'symbol': 'USDC.e',
+                'decimals': 6
+            },
+            # BUSD
+            '0x4fabb145d64652a948d72533023f6e7a623c7c53': {
+                'symbol': 'BUSD',
+                'decimals': 18
+            },
+            # GUSD (Gemini USD)
+            '0x056fd409e1d7a124bd7017459dfea2f387b6d5cd': {
+                'symbol': 'GUSD',
+                'decimals': 2
+            },
+            # sUSD (Synthetix USD)
+            '0x57ab1ec28d129707052df4df418d58a2d46d5f51': {
+                'symbol': 'sUSD',
+                'decimals': 18
+            },
+            # TUSD (TrueUSD)
+            '0x0000000000085d4780b73119b644ae5ecd22b376': {
+                'symbol': 'TUSD',
+                'decimals': 18
+            },
+            # USDP (Pax Dollar)
+            '0x8e870d67f660d95d5be530380d0ec0bd388289e1': {
+                'symbol': 'USDP',
+                'decimals': 18
+            },
+            # FEI USD
+            '0x956f47f50a910163d8bf957cf5846d573e7f87ca': {
+                'symbol': 'FEI',
+                'decimals': 18
+            },
+            # Euro stablecoins
+            # EURS (STASIS EURO)
+            '0xdb25f211ab05b1c97d595516f45794528a807ad8': {
+                'symbol': 'EURS',
+                'decimals': 2
+            },
+            # Deprecated/renamed stablecoins that might be in historical transactions
+            # SAI (Single Collateral DAI - old version)
+            '0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359': {
+                'symbol': 'SAI',
+                'decimals': 18
+            }
+        }
+        
+        # Method signatures for DEX transactions
+        self.method_signatures = {
+            # Swaps
+            '0x38ed1739': 'swapExactTokensForTokens',
+            '0x8803dbee': 'swapTokensForExactTokens',
+            
+            # ETH to Token swaps
+            '0x7ff36ab5': 'swapExactETHForTokens',
+            '0x4a25d94a': 'swapTokensForExactETH',
+            
+            # Token to ETH swaps
+            '0x18cbafe5': 'swapExactTokensForETH',
+            '0xfb3bdb41': 'swapETHForExactTokens',
+            
+            # Uniswap v3 
+            '0xc04b8d59': 'exactInput',
+            '0xb858183f': 'exactOutput',
+            '0x414bf389': 'exactInputSingle',
+            '0xdb3e2198': 'exactOutputSingle',
+            
+            # Sushiswap
+            '0x1f00ca74': 'swapExactTokensForTokensSupportingFeeOnTransferTokens',
+            '0x791ac947': 'swapExactTokensForETHSupportingFeeOnTransferTokens',
+            '0x5c11d795': 'swapExactETHForTokensSupportingFeeOnTransferTokens',
+            
+            # 1inch
+            '0x7c025200': 'swap',
+            '0xe449022e': 'uniswapV3Swap',
+            '0x84bd6d29': 'clipperSwap',
+            
+            # 0x Protocol
+            '0x415565b0': 'transformERC20',
+            '0xc7e474c8': 'sellToUniswap',
+            '0x90411a32': 'batchFillRfqOrders',
+            
+            # Balancer
+            '0x762e7e6f': 'batchSwap',
+            '0x945bcec9': 'swap',
+            
+            # Paraswap
+            '0xd9627aa4': 'swapOnUniswap',
+            '0xb2f1e6db': 'swapOnUniswapFork'
+        }
+        
+        # Classify method signatures by type
+        self.buy_methods = {
+            '0x7ff36ab5',  # swapExactETHForTokens
+            '0xfb3bdb41',  # swapETHForExactTokens
+            '0x5c11d795',  # swapExactETHForTokensSupportingFeeOnTransferTokens
+            '0x414bf389',  # exactInputSingle (when input is ETH/WETH)
+            '0xdb3e2198',  # exactOutputSingle (when output is not ETH/WETH)
+        }
+        
+        self.sell_methods = {
+            '0x4a25d94a',  # swapTokensForExactETH
+            '0x18cbafe5',  # swapExactTokensForETH
+            '0x791ac947',  # swapExactTokensForETHSupportingFeeOnTransferTokens
+            '0x414bf389',  # exactInputSingle (when input is not ETH/WETH)
+            '0xdb3e2198',  # exactOutputSingle (when output is ETH/WETH)
+        }
+        
         # Uniswap V2 Router ABI
         self.router_abi = [
             {"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"nonpayable","type":"function"},
@@ -99,6 +236,46 @@ class TokenPnLAnalyzer:
             {"constant":True,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":False,"stateMutability":"view","type":"function"},
             {"constant":True,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":False,"stateMutability":"view","type":"function"}
         ]
+
+    def is_stablecoin(self, address):
+        """Check if an address is a stablecoin"""
+        return address.lower() in self.stablecoins
+    
+    def get_stablecoin_info(self, address):
+        """Get stablecoin info"""
+        if self.is_stablecoin(address):
+            return self.stablecoins[address.lower()]
+        return None
+        
+    def convert_stablecoin_to_eth(self, amount, stablecoin_address, timestamp=None):
+        """Convert stablecoin amount to ETH using current or historical prices"""
+        if not self.is_stablecoin(stablecoin_address):
+            return amount
+            
+        stablecoin = self.stablecoins[stablecoin_address.lower()]
+        
+        # Get ETH price - for now we use current price
+        # In a future version, we could implement historical price lookup based on timestamp
+        eth_price = self.get_eth_price() 
+        if not eth_price:
+            eth_price = 2000  # Default ETH price if we can't get it
+            
+        # For historical prices, we could use a service like CoinGecko or CryptoCompare
+        # This would require additional API calls and rate limiting considerations
+        # For now, we'll use current price but make the code ready for historical prices
+        
+        # Adjust for EUR stablecoins (approximately 1.1 USD per EUR)
+        if stablecoin['symbol'] == 'EURS':
+            stablecoin_usd_rate = 1.1  # 1 EUR ≈ 1.1 USD
+        else:
+            stablecoin_usd_rate = 1.0  # 1 stablecoin = 1 USD (by definition)
+            
+        # Calculate the ETH amount: (stablecoin amount * USD rate) / ETH price in USD
+        eth_amount = (amount * stablecoin_usd_rate) / eth_price
+        
+        result = eth_amount
+        print(f"Converted {amount} {stablecoin['symbol']} to {result:.6f} ETH (ETH price: ${eth_price})")
+        return result
 
     def get_token_transfers(self, address, token_address):
         """Fetch token transfers for the given address"""
@@ -202,6 +379,7 @@ class TokenPnLAnalyzer:
         total_value = 0
         internal_value = 0
         tx_type = "unknown"
+        involved_tokens = []
         
         try:
             # Get transaction details
@@ -226,34 +404,56 @@ class TokenPnLAnalyzer:
                     
                     # Check if this is a swap transaction based on method signature
                     input_data = tx.get('input', '')
-                    
-                    # Common DEX method signatures
-                    if input_data.startswith('0x38ed1739'):  # swapExactTokensForTokens
-                        tx_type = "swap"
-                        try:
-                            # Remove method signature (0x + 8 bytes = 10 chars)
-                            data = input_data[10:]
-                            # Get amountIn (first 64 chars after method sig)
-                            amount_in = int(data[:64], 16)
+                    if len(input_data) >= 10:  # At least method signature (4 bytes + 0x)
+                        method_sig = input_data[:10]
+                        
+                        # Identify transaction type based on method signature
+                        if method_sig in self.method_signatures:
+                            method_name = self.method_signatures[method_sig]
+                            print(f"Method signature: {method_sig} ({method_name})")
                             
-                            # If this is a token-to-token swap, we need to find which token is WETH
-                            # For now, just record that we found a swap
-                            print(f"Found token swap in {tx_hash}")
-                        except Exception as e:
-                            print(f"Error decoding swap data: {str(e)}")
-                    
-                    # Check for other common DEX methods
-                    elif input_data.startswith('0x7ff36ab5'):  # swapExactETHForTokens
-                        tx_type = "buy"
-                        # The ETH value is already in the tx value field
-                    
-                    elif input_data.startswith('0x4a25d94a'):  # swapTokensForExactETH
-                        tx_type = "sell"
-                    
-                    elif input_data.startswith('0x18cbafe5'):  # swapExactTokensForETH
-                        tx_type = "sell"
+                            # Classify transaction type
+                            if method_sig in self.buy_methods:
+                                tx_type = "buy"
+                                print(f"Transaction {tx_hash} classified as BUY based on method signature {method_sig}")
+                            elif method_sig in self.sell_methods:
+                                tx_type = "sell"
+                                print(f"Transaction {tx_hash} classified as SELL based on method signature {method_sig}")
+                            else:
+                                tx_type = "swap"  # Generic swap
+                                print(f"Transaction {tx_hash} classified as generic SWAP based on method signature {method_sig}")
+                                
+                            # Extract token path for swaps if possible
+                            try:
+                                if method_sig in ['0x38ed1739', '0x8803dbee', '0x18cbafe5', '0x7ff36ab5']:
+                                    # These methods have path parameter - extract it
+                                    # Format is usually:
+                                    # [64 bytes amountIn/Out][64 bytes amountOut/In][64 bytes pathOffset][64 bytes toOffset][64 bytes deadlineOffset]
+                                    # Then [path_length][path_item1][path_item2]...
+                                    
+                                    # For simplicity, we'll just look for addresses in the input data
+                                    # This is not perfect but works for most cases
+                                    data_without_sig = input_data[10:]
+                                    
+                                    # Look for potential addresses in the data
+                                    for i in range(0, len(data_without_sig) - 40, 2):
+                                        potential_addr = '0x' + data_without_sig[i:i+40]
+                                        if Web3.is_address(potential_addr):
+                                            involved_tokens.append(potential_addr.lower())
+                                            
+                                    # Remove duplicates
+                                    involved_tokens = list(set(involved_tokens))
+                                    print(f"Involved tokens: {', '.join(involved_tokens)}")
+                                    
+                                    # Check for stablecoins in the path
+                                    for token in involved_tokens:
+                                        if self.is_stablecoin(token):
+                                            stablecoin_info = self.get_stablecoin_info(token)
+                                            print(f"Stablecoin detected: {stablecoin_info['symbol']}")
+                            except Exception as e:
+                                print(f"Error extracting token path: {str(e)}")
             
-            # Get transaction receipt for gas used
+            # Get transaction receipt for gas used and logs
             params = {
                 'module': 'proxy',
                 'action': 'eth_getTransactionReceipt',
@@ -266,9 +466,15 @@ class TokenPnLAnalyzer:
                 data = response.json()
                 if 'result' in data and data['result'] and data['result'].get('status') == '0x1':  # Success
                     receipt = data['result']
-                    # Record gas usage
-                    gas_used = int(receipt.get('gasUsed', '0x0'), 16)
-                    # We could calculate gas cost here
+                    
+                    # Check logs for Transfer events which might indicate tokens involved
+                    if 'logs' in receipt:
+                        for log in receipt['logs']:
+                            # Transfer event topic (keccak256("Transfer(address,address,uint256)"))
+                            if log.get('topics') and len(log['topics']) >= 3 and log['topics'][0] == '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef':
+                                contract_addr = log.get('address', '').lower()
+                                if contract_addr not in involved_tokens:
+                                    involved_tokens.append(contract_addr)
             
             # Get internal transactions - these often contain the actual ETH transfers in DEX trades
             params = {
@@ -288,13 +494,36 @@ class TokenPnLAnalyzer:
                             internal_value += value
                             print(f"Internal transaction value in {tx_hash}: {value} ETH")
             
+            # Handle stablecoin transactions
+            stablecoin_transfers = []
+            for token in involved_tokens:
+                if self.is_stablecoin(token):
+                    stablecoin_info = self.get_stablecoin_info(token)
+                    print(f"Stablecoin involved in transaction: {stablecoin_info['symbol']} ({token})")
+                    stablecoin_transfers.append(token)
+                    
+            # If this looks like a stablecoin transaction
+            if total_value == 0 and len(stablecoin_transfers) > 0:
+                print(f"Transaction {tx_hash} involves stablecoins but no direct ETH transfer")
+                
+                # We'll try to further analyze with token transfers
+                # The actual stablecoin amount will be determined in the analyze_pnl method
+                # when processing the token transfers
+                
+                # If transaction type is still unknown but we have stablecoins,
+                # we'll set a type based on token transfers in analyze_transaction_type
+                if tx_type == "unknown":
+                    print(f"Transaction type is unknown with stablecoins - will determine from token transfers")
+            
             # For sell transactions, the value is typically in internal transactions
             if tx_type == "sell" and internal_value > 0:
                 total_value = internal_value
+                print(f"Using internal transaction value for sell: {total_value} ETH")
             
             # If we still have 0 value, try more aggressively to find it
             if total_value == 0 and internal_value > 0:
                 total_value = internal_value
+                print(f"Using internal transaction value since direct value is 0: {total_value} ETH")
             
             # Fallback to a small default value if we couldn't determine anything
             # This helps ensure we don't have 0 values for transactions
@@ -307,302 +536,136 @@ class TokenPnLAnalyzer:
             # Use a small default value on error rather than returning 0
             total_value = 0.0001
             
-        print(f"Total value for {tx_hash}: {total_value} ETH")
-        return {'eth_value': total_value, 'internal_value': internal_value, 'tx_type': tx_type}
-
-    def get_eth_price(self):
-        """Get current ETH price in USD"""
-        params = {
-            'module': 'stats',
-            'action': 'ethprice',
-            'apikey': self.etherscan_api_key
+        print(f"Final values for {tx_hash}: {total_value} ETH, Transaction type: {tx_type}, Tokens: {len(involved_tokens)}")
+        return {
+            'eth_value': total_value, 
+            'internal_value': internal_value, 
+            'tx_type': tx_type,
+            'involved_tokens': involved_tokens
         }
-        response = requests.get(self.etherscan_url, params=params)
-        if response.status_code == 200:
-            data = response.json()
-            if data['status'] == '1':
-                return float(data['result']['ethusd'])
-        return None
 
-    def get_token_price_from_dexscreener(self, token_address):
-        """Get token price from DexScreener API"""
-        try:
-            # DexScreener API endpoint
-            url = f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
-            response = requests.get(url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('pairs') and len(data['pairs']) > 0:
-                    # Get the first WETH pair
-                    weth_pairs = [p for p in data['pairs'] if 
-                                p.get('quoteToken', {}).get('symbol', '').upper() == 'WETH' and 
-                                p.get('chainId') == 'ethereum']
-                    
-                    if weth_pairs:
-                        pair = weth_pairs[0]  # Use the first WETH pair
-                        price_usd = float(pair['priceUsd'])
-                        price_eth = float(pair.get('priceNative', 0))
-                        print(f"Token price in USD: ${price_usd:.4f}")
-                        return price_eth
-                    
-                    # If no WETH pair, use the first pair and convert through USD
-                    pair = data['pairs'][0]
-                    if pair.get('priceUsd'):
-                        price_usd = float(pair['priceUsd'])
-                        eth_price_usd = self.get_eth_price()
-                        if eth_price_usd:
-                            price_eth = price_usd / eth_price_usd
-                            print(f"Token price in USD: ${price_usd:.4f}")
-                            return price_eth
-            
-            return None
-        except Exception as e:
-            print(f"Warning: Could not fetch price from DexScreener: {str(e)}")
-            return None
-
-    def get_token_price(self, token_address):
-        """Get current token price in ETH"""
-        try:
-            # If token is WETH, price is 1 ETH
-            if token_address.lower() == self.weth_address.lower():
-                return 1.0
-
-            # Try DexScreener first
-            dexscreener_price = self.get_token_price_from_dexscreener(token_address)
-            if dexscreener_price:
-                return dexscreener_price
-
-            # Fallback to DEX price if DexScreener fails
-            token_contract = self.w3.eth.contract(address=token_address, abi=self.token_abi)
-            token_decimals = token_contract.functions.decimals().call()
-
-            # Get WETH pair address
-            pair_address = self.factory_contract.functions.getPair(token_address, self.weth_address).call()
-            
-            if pair_address == '0x0000000000000000000000000000000000000000':
-                print("Warning: No WETH pair found for this token")
-                return None
-
-            # Get pair contract
-            pair_contract = self.w3.eth.contract(address=pair_address, abi=self.pair_abi)
-            
-            # Get reserves
-            reserves = pair_contract.functions.getReserves().call()
-            token0 = pair_contract.functions.token0().call()
-            
-            # Calculate price based on reserves
-            if token0.lower() == token_address.lower():
-                # Token is token0, price = reserve1/reserve0
-                price = (reserves[1] / 1e18) / (reserves[0] / (10 ** token_decimals))
-            else:
-                # Token is token1, price = reserve0/reserve1
-                price = (reserves[0] / 1e18) / (reserves[1] / (10 ** token_decimals))
-
-            # Get current ETH price in USD
-            eth_price_usd = self.get_eth_price()
-            if eth_price_usd:
-                token_price_usd = price * eth_price_usd
-                print(f"Token price in USD: ${token_price_usd:.4f}")
-
-            return price
-
-        except Exception as e:
-            print(f"Warning: Could not fetch token price: {str(e)}")
-            return None
-
-    def get_token_info(self, token_address):
-        """Get token information"""
-        try:
-            token_contract = self.w3.eth.contract(
-                address=self.w3.to_checksum_address(token_address),
-                abi=self.token_abi
-            )
-            
-            name = token_contract.functions.name().call()
-            symbol = token_contract.functions.symbol().call()
-            decimals = token_contract.functions.decimals().call()
-            
-            return {
-                'name': name,
-                'symbol': symbol,
-                'decimals': decimals
-            }
-        except Exception as e:
-            print(f"Warning: Could not get token info: {str(e)}")
-            return None
-
-    def get_historical_eth_price(self, timestamp):
-        """Get historical ETH price for a specific timestamp"""
-        try:
-            # Using CoinGecko API for historical prices
-            date = datetime.fromtimestamp(timestamp).strftime('%d-%m-%Y')
-            url = f"https://api.coingecko.com/api/v3/coins/ethereum/history?date={date}"
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                return data['market_data']['current_price']['usd']
-        except Exception as e:
-            print(f"Warning: Could not get historical ETH price: {str(e)}")
-        return None
-
-    def get_token_address_from_pair(self, token_pair):
-        """Get token address from token pair"""
-        try:
-            # Split the pair
-            base_token, quote_token = token_pair.split('/')
-            
-            # Get token address from pair
-            pair_address = self.router_contract.functions.getPair(
-                self.w3.to_checksum_address(base_token),
-                self.w3.to_checksum_address(self.weth_address)
-            ).call()
-            
-            if pair_address == "0x0000000000000000000000000000000000000000":
-                # Try with quote token if base token fails
-                pair_address = self.router_contract.functions.getPair(
-                    self.w3.to_checksum_address(quote_token),
-                    self.w3.to_checksum_address(self.weth_address)
-                ).call()
-            
-            if pair_address == "0x0000000000000000000000000000000000000000":
-                print("Error: Could not find token pair")
-                return None
-            
-            return pair_address
-            
-        except Exception as e:
-            print(f"Error getting token address: {str(e)}")
-            return None
-
-    def get_token_from_pair(self, pair_address):
-        """Get token address from pair address"""
-        try:
-            pair_contract = self.w3.eth.contract(
-                address=self.w3.to_checksum_address(pair_address),
-                abi=self.pair_abi
-            )
-            token0 = pair_contract.functions.token0().call()
-            token1 = pair_contract.functions.token1().call()
-            
-            # Get token info for both tokens
-            token0_contract = self.w3.eth.contract(
-                address=self.w3.to_checksum_address(token0),
-                abi=self.token_abi
-            )
-            token1_contract = self.w3.eth.contract(
-                address=self.w3.to_checksum_address(token1),
-                abi=self.token_abi
-            )
-            
-            # Get symbols
-            token0_symbol = token0_contract.functions.symbol().call()
-            token1_symbol = token1_contract.functions.symbol().call()
-            
-            # Return the non-WETH token
-            if token0_symbol == 'WETH':
-                return token1
-            elif token1_symbol == 'WETH':
-                return token0
-            else:
-                return token0  # Default to token0 if neither is WETH
-                
-        except Exception as e:
-            print(f"Error getting token from pair: {e}")
-            return None
-
-    @lru_cache(maxsize=100)
-    def get_historical_token_price(self, token_address, timestamp):
-        """Get historical token price with caching"""
-        cache_key = f"{token_address}_{timestamp}"
-        if cache_key in self.price_cache:
-            return self.price_cache[cache_key]
-
-        try:
-            # First try DexScreener historical data
-            url = f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
-            response = requests.get(url)
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('pairs') and len(data['pairs']) > 0:
-                    weth_pairs = [p for p in data['pairs'] if 
-                                p.get('quoteToken', {}).get('symbol', '').upper() == 'WETH' and 
-                                p.get('chainId') == 'ethereum']
-                    
-                    if weth_pairs:
-                        pair = weth_pairs[0]
-                        price_history = pair.get('priceHistory', [])
-                        if price_history:
-                            closest_price = min(price_history, 
-                                             key=lambda x: abs(x['timestamp'] - timestamp))
-                            price = float(closest_price['price'])
-                            self.price_cache[cache_key] = price
-                            return price
-            
-            # Fallback to reserves calculation
-            price = self._calculate_price_from_reserves(token_address)
-            if price:
-                self.price_cache[cache_key] = price
-                return price
-            
-            return None
-        except Exception:
-            return None
-
-    def _calculate_price_from_reserves(self, token_address):
-        """Helper method to calculate price from reserves"""
-        try:
-            token_contract = self.w3.eth.contract(address=token_address, abi=self.token_abi)
-            token_decimals = token_contract.functions.decimals().call()
-            pair_address = self.factory_contract.functions.getPair(token_address, self.weth_address).call()
-            
-            if pair_address != '0x0000000000000000000000000000000000000000':
-                pair_contract = self.w3.eth.contract(address=pair_address, abi=self.pair_abi)
-                reserves = pair_contract.functions.getReserves().call()
-                token0 = pair_contract.functions.token0().call()
-                
-                if token0.lower() == token_address.lower():
-                    return (reserves[1] / 1e18) / (reserves[0] / (10 ** token_decimals))
-                else:
-                    return (reserves[0] / 1e18) / (reserves[1] / (10 ** token_decimals))
-            return None
-        except Exception:
-            return None
-
-    def process_transfer(self, transfer, wallet_address, token_address):
-        """Process a single transfer with all calculations"""
+    def analyze_transaction_type(self, tx_hash, wallet_address, token_address):
+        """Analyze a transaction to determine its precise type (buy, sell, transfer)"""
+        token_address = token_address.lower()
+        wallet_address = wallet_address.lower()
+        
         try:
             # Get transaction details
-            tx_details = self.get_transaction(transfer['hash'])
-            tx_value = tx_details['eth_value']
+            tx_details = self.get_transaction(tx_hash)
             
-            # Calculate gas cost
-            gas_used = int(transfer['gasUsed'])
-            gas_price = int(transfer['gasPrice'])
-            gas_cost_eth = (gas_used * gas_price) / 1e18
+            # Get all token transfers for this transaction
+            transfers = self.get_token_transaction_transfers(tx_hash)
             
-            # Convert token amount
-            token_amount = float(transfer['value']) / (10 ** int(transfer['tokenDecimal']))
+            # Check if this transaction involves stablecoins
+            stablecoin_involved = False
+            stablecoin_address = None
+            stablecoin_amount = 0
             
-            # Get historical price
-            timestamp = int(transfer['timeStamp'])
-            historical_price = self.get_historical_token_price(token_address, timestamp)
+            for token in tx_details.get('involved_tokens', []):
+                if self.is_stablecoin(token):
+                    stablecoin_involved = True
+                    stablecoin_address = token
+                    
+                    # Find stablecoin amount in transfers
+                    for transfer in transfers:
+                        if transfer.get('contractAddress', '').lower() == stablecoin_address:
+                            stablecoin_info = self.get_stablecoin_info(stablecoin_address)
+                            decimals = stablecoin_info.get('decimals', 18)
+                            value = float(transfer.get('value', 0)) / (10 ** decimals)
+                            
+                            # If wallet is receiving stablecoin, it's likely a sell
+                            if transfer.get('to', '').lower() == wallet_address:
+                                stablecoin_amount += value
+                                print(f"Wallet received {value} stablecoin in tx {tx_hash}")
+                            # If wallet is sending stablecoin, it's likely a buy
+                            elif transfer.get('from', '').lower() == wallet_address:
+                                stablecoin_amount -= value
+                                print(f"Wallet sent {value} stablecoin in tx {tx_hash}")
+                    
+                    break
             
-            # Calculate values
-            eth_value = token_amount * historical_price if historical_price else tx_value
-            is_buy = transfer['to'].lower() == wallet_address.lower()
+            # Filter transfers for our token and wallet
+            our_token_transfers = []
+            for transfer in transfers:
+                if transfer.get('contractAddress', '').lower() == token_address and (
+                   transfer.get('from', '').lower() == wallet_address or 
+                   transfer.get('to', '').lower() == wallet_address):
+                    our_token_transfers.append(transfer)
             
-            return {
-                'is_buy': is_buy,
-                'token_amount': token_amount,
-                'eth_value': eth_value,
-                'gas_cost': gas_cost_eth,
-                'hash': transfer['hash']  # Add hash for debugging
-            }
+            if not our_token_transfers:
+                print(f"No relevant transfers found for tx {tx_hash}")
+                return "unknown", 0
+            
+            # Count incoming and outgoing transfers
+            incoming = 0
+            outgoing = 0
+            token_amount = 0
+            
+            for transfer in our_token_transfers:
+                token_decimals = int(transfer.get('tokenDecimal', 18))
+                amount = float(transfer.get('value', 0)) / (10 ** token_decimals)
+                
+                if transfer.get('to', '').lower() == wallet_address:
+                    incoming += 1
+                    token_amount += amount
+                elif transfer.get('from', '').lower() == wallet_address:
+                    outgoing += 1
+                    token_amount += amount
+            
+            # Determine transaction type with improved logic
+            tx_type = tx_details['tx_type']
+            
+            # Use method signature detection first
+            if tx_type != "unknown":
+                # Already determined from method signature
+                pass
+            # If stablecoin is involved, use that to determine buy/sell
+            elif stablecoin_involved:
+                if stablecoin_amount > 0 and outgoing > 0:
+                    # Wallet sent tokens and received stablecoins -> SELL
+                    tx_type = "sell"
+                    print(f"Classified as SELL based on stablecoin receipt: {tx_hash}")
+                elif stablecoin_amount < 0 and incoming > 0:
+                    # Wallet sent stablecoins and received tokens -> BUY
+                    tx_type = "buy"
+                    print(f"Classified as BUY based on stablecoin payment: {tx_hash}")
+            # Fallback to transfer pattern detection
+            elif incoming > 0 and outgoing == 0:
+                # Only incoming transfers to wallet
+                tx_type = "buy"
+            elif outgoing > 0 and incoming == 0:
+                # Only outgoing transfers from wallet
+                tx_type = "sell"
+            elif incoming > 0 and outgoing > 0:
+                # Both incoming and outgoing - could be a swap, internal transfer, etc.
+                # Need more advanced logic to determine type
+                tx_type = "unknown"
+            
+            return tx_type, token_amount
+            
         except Exception as e:
-            print(f"Warning: Failed to process transfer {transfer.get('hash', 'unknown')}: {str(e)}")
-            return None
+            print(f"Error analyzing transaction type for {tx_hash}: {str(e)}")
+            return "unknown", 0
+    
+    def get_token_transaction_transfers(self, tx_hash):
+        """Get all token transfers for a transaction hash"""
+        params = {
+            'module': 'account',
+            'action': 'tokentx',
+            'txhash': tx_hash,
+            'apikey': self.etherscan_api_key
+        }
+        
+        try:
+            response = requests.get(self.etherscan_url, params=params, timeout=30)
+            if response.status_code == 200:
+                data = response.json()
+                if data['status'] == '1':
+                    return data['result']
+            return []
+        except Exception as e:
+            print(f"Error getting token transfers for tx {tx_hash}: {str(e)}")
+            return []
 
     def analyze_pnl(self, wallet_address, token_address):
         """Analyze profit and loss for a token"""
@@ -681,89 +744,198 @@ class TokenPnLAnalyzer:
             # Process each transaction, tracking unique transaction hashes to avoid duplicates
             processed_txs = set()
             
+            # Group transfers by transaction hash to count buys/sells correctly
+            tx_transfers = {}
+            for tx in transfers:
+                tx_hash = tx['hash']
+                if tx_hash not in tx_transfers:
+                    tx_transfers[tx_hash] = []
+                tx_transfers[tx_hash].append(tx)
+            
+            # Prepare to track each transaction with full details
+            transactions = []
+            
             # Get gas prices for transactions
-            with tqdm(total=len(transfers), desc="Processing transactions") as pbar:
-                for tx in transfers:
+            with tqdm(total=len(tx_transfers), desc="Processing transactions") as pbar:
+                for tx_hash, tx_group in tx_transfers.items():
                     try:
-                        tx_hash = tx['hash']
-                        
                         # Skip if we've already processed this transaction
                         if tx_hash in processed_txs:
                             pbar.update(1)
                             continue
                         
-                        # Check if incoming or outgoing
-                        is_transfer_in = tx['to'].lower() == wallet_address.lower()
-                        is_transfer_out = tx['from'].lower() == wallet_address.lower()
+                        # Check if transaction is relevant to the wallet and token
+                        is_relevant = False
+                        for tx in tx_group:
+                            if (tx['to'].lower() == wallet_address.lower() or 
+                                tx['from'].lower() == wallet_address.lower()) and \
+                               tx['contractAddress'].lower() == token_address.lower():
+                                is_relevant = True
+                                break
+                                
+                        if not is_relevant:
+                            processed_txs.add(tx_hash)
+                            pbar.update(1)
+                            continue
                         
-                        # Get transaction value and type
+                        # Get timestamp
+                        timestamp = int(tx_group[0].get('timeStamp', 0))
+                        date_time = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        # Perform detailed transaction type analysis
+                        tx_type, token_amount = self.analyze_transaction_type(tx_hash, wallet_address, token_address)
+                        
+                        # Get transaction value and details
                         tx_value = self.get_transaction(tx_hash)
-                        tx_type = tx_value.get('tx_type', 'unknown')
                         
                         # Calculate gas cost
-                        gas_used = int(tx.get('gasUsed', '0'))
-                        gas_price = int(tx.get('gasPrice', '0'))
+                        gas_used = int(tx_group[0].get('gasUsed', '0'))
+                        gas_price = int(tx_group[0].get('gasPrice', '0'))
                         gas_cost = (gas_used * gas_price) / 1e18
                         total_gas_eth += gas_cost
                         
-                        # Convert token amount
-                        token_amount = float(tx['value']) / (10 ** int(tx.get('tokenDecimal', token_decimals)))
+                        # Get transaction eth value
+                        eth_value = tx_value['eth_value']
                         
-                        # Determine if this is a buy or sell based on both token flow and transaction type
-                        is_buy = False
-                        is_sell = False
+                        # Check for stablecoins
+                        has_stablecoin = False
+                        stablecoin_address = None
+                        for token in tx_value.get('involved_tokens', []):
+                            if self.is_stablecoin(token):
+                                has_stablecoin = True
+                                stablecoin_address = token
+                                stablecoin_info = self.get_stablecoin_info(token)
+                                print(f"Transaction involves stablecoin: {stablecoin_info['symbol']}")
+                                break
                         
-                        # For direct DEX transactions, trust the transaction type
-                        if tx_type == "buy":
-                            is_buy = True
-                        elif tx_type == "sell":
-                            is_sell = True
-                        # For other transactions, infer from token flow
-                        elif is_transfer_in and not is_transfer_out:
-                            # Token flowing into the wallet = buy
-                            is_buy = True
-                        elif is_transfer_out and not is_transfer_in:
-                            # Token flowing out of the wallet = sell
-                            is_sell = True
-                        else:
-                            # Could be an internal transfer, we'll skip counting this as buy/sell
-                            pass
+                        # Store transaction data
+                        tx_data = {
+                            'hash': tx_hash,
+                            'timestamp': timestamp,
+                            'date_time': date_time,
+                            'type': tx_type,
+                            'eth_value': eth_value,
+                            'gas_cost': gas_cost,
+                            'token_amount': 0,
+                            'has_stablecoin': has_stablecoin,
+                            'stablecoin_address': stablecoin_address
+                        }
                         
                         # Process buy transaction
-                        if is_buy:
+                        if tx_type == "buy":
                             buy_count += 1
-                            total_tokens_bought += token_amount
+                            
+                            # Calculate token amount - use the sum from all transfers
+                            token_amount_in = 0
+                            for tx in tx_group:
+                                if tx['to'].lower() == wallet_address.lower() and tx['contractAddress'].lower() == token_address.lower():
+                                    token_amount_in += float(tx['value']) / (10 ** int(tx.get('tokenDecimal', token_decimals)))
+                            
+                            tx_data['token_amount'] = token_amount_in
+                            total_tokens_bought += token_amount_in
                             
                             # Use estimated ETH value or internal values
-                            eth_value = tx_value['eth_value']
-                            if eth_value == 0 and tx_type == 'buy':
-                                # Fallback to estimating value based on current price
-                                eth_value = token_amount * current_price_eth
+                            if eth_value == 0:
+                                # Check for stablecoin payments
+                                if has_stablecoin and stablecoin_address:
+                                    # Try to find stablecoin amount from transfers
+                                    stablecoin_transfers = self.get_token_transaction_transfers(tx_hash)
+                                    stablecoin_amount = 0
+                                    
+                                    for transfer in stablecoin_transfers:
+                                        if transfer.get('contractAddress', '').lower() == stablecoin_address.lower():
+                                            # Only count outgoing stablecoin transfers for buys
+                                            if transfer.get('from', '').lower() == wallet_address.lower():
+                                                stablecoin_info = self.get_stablecoin_info(stablecoin_address)
+                                                decimals = stablecoin_info.get('decimals', 18)
+                                                value = float(transfer.get('value', 0)) / (10 ** decimals)
+                                                stablecoin_amount += value
+                                                print(f"Found stablecoin payment: {value} {stablecoin_info['symbol']}")
+                                    
+                                    if stablecoin_amount > 0:
+                                        # Convert stablecoin amount to ETH
+                                        eth_value = self.convert_stablecoin_to_eth(stablecoin_amount, stablecoin_address, timestamp)
+                                        print(f"Buy: Converted {stablecoin_amount} stablecoin to {eth_value} ETH")
+                                        tx_data['eth_value'] = eth_value
+                                    else:
+                                        # Still falling back to token price
+                                        eth_value = token_amount_in * current_price_eth
+                                        tx_data['eth_value'] = eth_value
+                                else:
+                                    # Use current price as a fallback
+                                    eth_value = token_amount_in * current_price_eth
+                                    tx_data['eth_value'] = eth_value
                             
                             total_in_eth += eth_value
                             print(f"Buy transaction - Added {eth_value} ETH to total_in_eth (now {total_in_eth})")
                             
                         # Process sell transaction
-                        elif is_sell:
+                        elif tx_type == "sell":
                             sell_count += 1
-                            total_tokens_sold += token_amount
+                            
+                            # Calculate token amount - use the sum from all transfers
+                            token_amount_out = 0
+                            for tx in tx_group:
+                                if tx['from'].lower() == wallet_address.lower() and tx['contractAddress'].lower() == token_address.lower():
+                                    token_amount_out += float(tx['value']) / (10 ** int(tx.get('tokenDecimal', token_decimals)))
+                            
+                            tx_data['token_amount'] = token_amount_out
+                            total_tokens_sold += token_amount_out
                             
                             # Use estimated ETH value or internal values
-                            eth_value = tx_value['eth_value']
-                            if eth_value == 0 and tx_type == 'sell':
-                                # Fallback to estimating value based on current price
-                                eth_value = token_amount * current_price_eth
+                            if eth_value == 0:
+                                # Check for stablecoin receipts
+                                if has_stablecoin and stablecoin_address:
+                                    # Try to find stablecoin amount from transfers
+                                    stablecoin_transfers = self.get_token_transaction_transfers(tx_hash)
+                                    stablecoin_amount = 0
+                                    
+                                    for transfer in stablecoin_transfers:
+                                        if transfer.get('contractAddress', '').lower() == stablecoin_address.lower():
+                                            # Only count incoming stablecoin transfers for sells
+                                            if transfer.get('to', '').lower() == wallet_address.lower():
+                                                stablecoin_info = self.get_stablecoin_info(stablecoin_address)
+                                                decimals = stablecoin_info.get('decimals', 18)
+                                                value = float(transfer.get('value', 0)) / (10 ** decimals)
+                                                stablecoin_amount += value
+                                                print(f"Found stablecoin receipt: {value} {stablecoin_info['symbol']}")
+                                    
+                                    if stablecoin_amount > 0:
+                                        # Convert stablecoin amount to ETH
+                                        eth_value = self.convert_stablecoin_to_eth(stablecoin_amount, stablecoin_address, timestamp)
+                                        print(f"Sell: Converted {stablecoin_amount} stablecoin to {eth_value} ETH")
+                                        tx_data['eth_value'] = eth_value
+                                    else:
+                                        # Still falling back to token price
+                                        eth_value = token_amount_out * current_price_eth
+                                        tx_data['eth_value'] = eth_value
+                                else:
+                                    # Use current price as a fallback
+                                    eth_value = token_amount_out * current_price_eth
+                                    tx_data['eth_value'] = eth_value
                             
                             total_out_eth += eth_value
                             print(f"Sell transaction - Added {eth_value} ETH to total_out_eth (now {total_out_eth})")
+                        
+                        # Add transaction to list
+                        transactions.append(tx_data)
                         
                         # Mark this transaction as processed
                         processed_txs.add(tx_hash)
                         
                     except Exception as e:
-                        print(f"Error processing transaction {tx.get('hash', 'unknown')}: {str(e)}")
+                        print(f"Error processing transaction {tx_hash}: {str(e)}")
                     finally:
                         pbar.update(1)
+                    
+            # Double-check our totals
+            print(f"\nVerifying total transactions:")
+            print(f"Total buy transactions: {buy_count}")
+            print(f"Total sell transactions: {sell_count}")
+            print(f"Total tokens bought: {total_tokens_bought:.4f} {token_symbol}")
+            print(f"Total tokens sold: {total_tokens_sold:.4f} {token_symbol}")
+            print(f"Total ETH in: {total_in_eth:.4f} ETH")
+            print(f"Total ETH out: {total_out_eth:.4f} ETH")
                     
             # Calculate holdings and PnL
             current_holdings_eth = current_balance * current_price_eth
@@ -776,6 +948,7 @@ class TokenPnLAnalyzer:
                 realized_pnl_eth = total_out_eth - realized_cost
             else:
                 realized_pnl_eth = 0
+                cost_basis_per_token = 0
             
             realized_pnl_usd = realized_pnl_eth * eth_price_usd
             
@@ -794,11 +967,12 @@ class TokenPnLAnalyzer:
             
             print("\nAnalysis Results:")
             print(f"Token: {token_name} ({token_symbol})")
-            print(f"Current Balance: {current_balance:.1f} {token_symbol}")
-            print(f"Total Bought: {total_tokens_bought:.1f} {token_symbol} for {total_in_eth:.1f} ETH")
-            print(f"Total Sold: {total_tokens_sold:.1f} {token_symbol} for {total_out_eth:.1f} ETH")
-            print(f"Realized PnL: {realized_pnl_eth:.1f} ETH (${realized_pnl_usd:.1f})")
-            print(f"Unrealized PnL: {unrealized_pnl_eth:.1f} ETH (${unrealized_pnl_usd:.1f})")
+            print(f"Current Balance: {current_balance:.4f} {token_symbol}")
+            print(f"Total Bought: {total_tokens_bought:.4f} {token_symbol} for {total_in_eth:.4f} ETH")
+            print(f"Total Sold: {total_tokens_sold:.4f} {token_symbol} for {total_out_eth:.4f} ETH")
+            print(f"Realized PnL: {realized_pnl_eth:.4f} ETH (${realized_pnl_usd:.2f})")
+            print(f"Unrealized PnL: {unrealized_pnl_eth:.4f} ETH (${unrealized_pnl_usd:.2f})")
+            print(f"Total Transactions: {len(processed_txs)} (Buys: {buy_count}, Sells: {sell_count})")
             
             return {
                 'token_name': token_name,
@@ -819,13 +993,121 @@ class TokenPnLAnalyzer:
                 'unrealized_pnl_eth': unrealized_pnl_eth,
                 'unrealized_pnl_usd': unrealized_pnl_usd,
                 'total_pnl_eth': total_pnl_eth,
-                'total_pnl_usd': total_pnl_usd
+                'total_pnl_usd': total_pnl_usd,
+                'eth_price_usd': eth_price_usd,
+                'transactions': transactions
             }
         except Exception as e:
             import traceback
             print(f"ERROR in analyze_pnl: {str(e)}")
             print(f"Detailed error: {traceback.format_exc()}")
             raise Exception(f"Failed to analyze token: {str(e)}")
+
+    def get_eth_price(self):
+        """Get current ETH price in USD"""
+        params = {
+            'module': 'stats',
+            'action': 'ethprice',
+            'apikey': self.etherscan_api_key
+        }
+        response = requests.get(self.etherscan_url, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data['status'] == '1':
+                return float(data['result']['ethusd'])
+        return None
+
+    def get_token_price_from_dexscreener(self, token_address):
+        """Get token price from DexScreener API"""
+        try:
+            # DexScreener API endpoint
+            url = f"https://api.dexscreener.com/latest/dex/tokens/{token_address}"
+            response = requests.get(url)
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('pairs') and len(data['pairs']) > 0:
+                    # Get the first WETH pair
+                    weth_pairs = [p for p in data['pairs'] if 
+                                p.get('quoteToken', {}).get('symbol', '').upper() == 'WETH' and 
+                                p.get('chainId') == 'ethereum']
+                    
+                    if weth_pairs:
+                        pair = weth_pairs[0]  # Use the first WETH pair
+                        price_usd = float(pair['priceUsd'])
+                        price_eth = float(pair.get('priceNative', 0))
+                        print(f"Token price in USD: ${price_usd:.4f}")
+                        return price_eth
+                    
+                    # If no WETH pair, use the first pair and convert through USD
+                    pair = data['pairs'][0]
+                    if pair.get('priceUsd'):
+                        price_usd = float(pair['priceUsd'])
+                        eth_price_usd = self.get_eth_price()
+                        if eth_price_usd:
+                            price_eth = price_usd / eth_price_usd
+                            print(f"Token price in USD: ${price_usd:.4f}")
+                            return price_eth
+            
+            return None
+        except Exception as e:
+            print(f"Warning: Could not fetch price from DexScreener: {str(e)}")
+            return None
+
+    def get_token_price(self, token_address):
+        """Get current token price in ETH"""
+        try:
+            # If token is WETH, price is 1 ETH
+            if token_address.lower() == self.weth_address.lower():
+                return 1.0
+
+            # Try DexScreener first
+            dexscreener_price = self.get_token_price_from_dexscreener(token_address)
+            if dexscreener_price:
+                return dexscreener_price
+
+            # Fallback to DEX price if DexScreener fails
+            token_contract = self.w3.eth.contract(address=token_address, abi=self.token_abi)
+            token_decimals = token_contract.functions.decimals().call()
+
+            # Get WETH pair address
+            pair_address = self.factory_contract.functions.getPair(token_address, self.weth_address).call()
+            
+            if pair_address == '0x0000000000000000000000000000000000000000':
+                print("Warning: No WETH pair found for this token")
+                return None
+
+            # Get pair contract
+            pair_contract = self.w3.eth.contract(address=pair_address, abi=self.pair_abi)
+            
+            # Get tokens in pair
+            token0 = pair_contract.functions.token0().call()
+            token1 = pair_contract.functions.token1().call()
+            
+            # Get reserves
+            reserves = pair_contract.functions.getReserves().call()
+            
+            # Calculate price based on reserves
+            price = 0
+            if token0.lower() == token_address.lower():
+                # Token is token0, price = reserve1/reserve0
+                price = (reserves[1] / 1e18) / (reserves[0] / (10 ** token_decimals))
+            else:
+                # Token is token1, price = reserve0/reserve1
+                price = (reserves[0] / 1e18) / (reserves[1] / (10 ** token_decimals))
+            
+            # Get current ETH price in USD
+            eth_price_usd = self.get_eth_price()
+            if eth_price_usd:
+                token_price_usd = price * eth_price_usd
+                print(f"Token price from pair reserves: {price:.8f} ETH (${token_price_usd:.2f})")
+            else:
+                print(f"Token price from pair reserves: {price:.8f} ETH")
+                
+            return price
+        except Exception as e:
+            print(f"Warning: Could not calculate token price: {str(e)}")
+            return None
 
 def main():
     """Main function"""
