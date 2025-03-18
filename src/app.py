@@ -61,5 +61,8 @@ def analyze():
             'error': str(e)
         })
 
+# This is important for Vercel
+app = app
+
 if __name__ == '__main__':
     app.run(debug=True) 
