@@ -678,18 +678,27 @@ class TokenPnLAnalyzer:
             print(f"Analyzing transactions...")
             transfers = sorted(transfers, key=lambda x: int(x.get('timeStamp', 0)))
             
+            # Process each transaction, tracking unique transaction hashes to avoid duplicates
+            processed_txs = set()
+            
             # Get gas prices for transactions
             with tqdm(total=len(transfers), desc="Processing transactions") as pbar:
                 for tx in transfers:
                     try:
                         tx_hash = tx['hash']
                         
-                        # Check if incoming or outgoing
-                        is_buy = tx['to'].lower() == wallet_address.lower()
-                        is_sell = tx['from'].lower() == wallet_address.lower()
+                        # Skip if we've already processed this transaction
+                        if tx_hash in processed_txs:
+                            pbar.update(1)
+                            continue
                         
-                        # Get transaction value
+                        # Check if incoming or outgoing
+                        is_transfer_in = tx['to'].lower() == wallet_address.lower()
+                        is_transfer_out = tx['from'].lower() == wallet_address.lower()
+                        
+                        # Get transaction value and type
                         tx_value = self.get_transaction(tx_hash)
+                        tx_type = tx_value.get('tx_type', 'unknown')
                         
                         # Calculate gas cost
                         gas_used = int(tx.get('gasUsed', '0'))
@@ -700,6 +709,26 @@ class TokenPnLAnalyzer:
                         # Convert token amount
                         token_amount = float(tx['value']) / (10 ** int(tx.get('tokenDecimal', token_decimals)))
                         
+                        # Determine if this is a buy or sell based on both token flow and transaction type
+                        is_buy = False
+                        is_sell = False
+                        
+                        # For direct DEX transactions, trust the transaction type
+                        if tx_type == "buy":
+                            is_buy = True
+                        elif tx_type == "sell":
+                            is_sell = True
+                        # For other transactions, infer from token flow
+                        elif is_transfer_in and not is_transfer_out:
+                            # Token flowing into the wallet = buy
+                            is_buy = True
+                        elif is_transfer_out and not is_transfer_in:
+                            # Token flowing out of the wallet = sell
+                            is_sell = True
+                        else:
+                            # Could be an internal transfer, we'll skip counting this as buy/sell
+                            pass
+                        
                         # Process buy transaction
                         if is_buy:
                             buy_count += 1
@@ -707,7 +736,7 @@ class TokenPnLAnalyzer:
                             
                             # Use estimated ETH value or internal values
                             eth_value = tx_value['eth_value']
-                            if eth_value == 0 and tx_value['tx_type'] == 'buy':
+                            if eth_value == 0 and tx_type == 'buy':
                                 # Fallback to estimating value based on current price
                                 eth_value = token_amount * current_price_eth
                             
@@ -721,12 +750,16 @@ class TokenPnLAnalyzer:
                             
                             # Use estimated ETH value or internal values
                             eth_value = tx_value['eth_value']
-                            if eth_value == 0 and tx_value['tx_type'] == 'sell':
+                            if eth_value == 0 and tx_type == 'sell':
                                 # Fallback to estimating value based on current price
                                 eth_value = token_amount * current_price_eth
                             
                             total_out_eth += eth_value
                             print(f"Sell transaction - Added {eth_value} ETH to total_out_eth (now {total_out_eth})")
+                        
+                        # Mark this transaction as processed
+                        processed_txs.add(tx_hash)
+                        
                     except Exception as e:
                         print(f"Error processing transaction {tx.get('hash', 'unknown')}: {str(e)}")
                     finally:
@@ -755,13 +788,17 @@ class TokenPnLAnalyzer:
                 
             unrealized_pnl_usd = unrealized_pnl_eth * eth_price_usd
             
+            # Calculate total PnL
+            total_pnl_eth = realized_pnl_eth + unrealized_pnl_eth
+            total_pnl_usd = realized_pnl_usd + unrealized_pnl_usd
+            
             print("\nAnalysis Results:")
             print(f"Token: {token_name} ({token_symbol})")
-            print(f"Current Balance: {current_balance} {token_symbol}")
-            print(f"Total Bought: {total_tokens_bought} {token_symbol} for {total_in_eth} ETH")
-            print(f"Total Sold: {total_tokens_sold} {token_symbol} for {total_out_eth} ETH")
-            print(f"Realized PnL: {realized_pnl_eth} ETH (${realized_pnl_usd})")
-            print(f"Unrealized PnL: {unrealized_pnl_eth} ETH (${unrealized_pnl_usd})")
+            print(f"Current Balance: {current_balance:.1f} {token_symbol}")
+            print(f"Total Bought: {total_tokens_bought:.1f} {token_symbol} for {total_in_eth:.1f} ETH")
+            print(f"Total Sold: {total_tokens_sold:.1f} {token_symbol} for {total_out_eth:.1f} ETH")
+            print(f"Realized PnL: {realized_pnl_eth:.1f} ETH (${realized_pnl_usd:.1f})")
+            print(f"Unrealized PnL: {unrealized_pnl_eth:.1f} ETH (${unrealized_pnl_usd:.1f})")
             
             return {
                 'token_name': token_name,
@@ -780,7 +817,9 @@ class TokenPnLAnalyzer:
                 'realized_pnl_eth': realized_pnl_eth,
                 'realized_pnl_usd': realized_pnl_usd,
                 'unrealized_pnl_eth': unrealized_pnl_eth,
-                'unrealized_pnl_usd': unrealized_pnl_usd
+                'unrealized_pnl_usd': unrealized_pnl_usd,
+                'total_pnl_eth': total_pnl_eth,
+                'total_pnl_usd': total_pnl_usd
             }
         except Exception as e:
             import traceback
@@ -831,36 +870,26 @@ def main():
             
             # Token Position
             print("\n💰 Token Position")
-            print(f"   • Tokens Bought:   {results['total_tokens_bought']:,.2f}")
-            print(f"   • Tokens Sold:     {results['total_tokens_sold']:,.2f}")
-            print(f"   • Current Balance: {results['current_balance']:,.2f}")
+            print(f"   • Tokens Bought:   {results['total_tokens_bought']:.1f}")
+            print(f"   • Tokens Sold:     {results['total_tokens_sold']:.1f}")
+            print(f"   • Current Balance: {results['current_balance']:.1f}")
             
             # Investment Summary
             print("\n💸 Investment Summary")
-            print(f"   • Total Invested: {results['total_in_eth']:.4f} ETH")
-            print(f"   • Total Returned: {results['total_out_eth']:.4f} ETH")
-            print(f"   • Gas Costs:      {results['total_gas_eth']:.4f} ETH")
+            print(f"   • Invested: {results['total_in_eth']:.1f} ETH (${results['total_in_eth'] * results.get('eth_price_usd', 2000):.1f})")
+            print(f"   • Returned: {results['total_out_eth']:.1f} ETH (${results['total_out_eth'] * results.get('eth_price_usd', 2000):.1f})")
+            print(f"   • Gas Cost: {results['total_gas_eth']:.1f} ETH (${results['total_gas_eth'] * results.get('eth_price_usd', 2000):.1f})")
             
             # Current Value
             print("\n📈 Current Value")
-            print(f"   • Token Price:    {results['current_price_eth']:.8f} ETH")
-            print(f"   • Holdings Value: {results['current_holdings_eth']:.4f} ETH (${results['current_holdings_usd']:,.2f})")
+            print(f"   • Token Price: {results['current_price_eth']:.8f} ETH")
+            print(f"   • Holdings: {results['current_holdings_eth']:.1f} ETH (${results['current_holdings_usd']:.1f})")
             
             # PnL Summary
             print("\n📊 Profit/Loss Summary")
-            print("   Realized:")
-            print(f"   • ETH: {results['realized_pnl_eth']:.4f}")
-            print(f"   • USD: ${results['realized_pnl_usd']:,.2f}")
-            print("   Unrealized:")
-            print(f"   • ETH: {results['unrealized_pnl_eth']:.4f}")
-            print(f"   • USD: ${results['unrealized_pnl_usd']:,.2f}")
-            
-            # Total PnL
-            total_pnl_eth = results['realized_pnl_eth'] + results['unrealized_pnl_eth']
-            total_pnl_usd = results['realized_pnl_usd'] + results['unrealized_pnl_usd']
-            print("\n💫 Total Position PnL")
-            print(f"   • ETH: {total_pnl_eth:.4f}")
-            print(f"   • USD: ${total_pnl_usd:,.2f}")
+            print(f"   • Realized: {results['realized_pnl_eth']:.1f} ETH (${results['realized_pnl_usd']:.1f})")
+            print(f"   • Unrealized: {results['unrealized_pnl_eth']:.1f} ETH (${results['unrealized_pnl_usd']:.1f})")
+            print(f"   • Total PnL: {results['total_pnl_eth']:.1f} ETH (${results['total_pnl_usd']:.1f})")
             
             print("\n" + "="*50)
         else:
