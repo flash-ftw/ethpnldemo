@@ -15,8 +15,31 @@ load_dotenv()
 
 class TokenPnLAnalyzer:
     def __init__(self):
-        # Initialize Web3 with Infura endpoint
-        self.w3 = Web3(Web3.HTTPProvider('https://rpc.ankr.com/eth'))
+        # Initialize Web3 with alternative endpoint
+        # Using multiple fallback providers in case one fails
+        rpc_url = os.getenv('ETH_RPC_URL', 'https://eth.llamarpc.com')
+        self.w3 = Web3(Web3.HTTPProvider(rpc_url))
+        
+        # Check if connection is working, if not try fallback URLs
+        if not self.w3.is_connected():
+            fallback_urls = [
+                'https://ethereum.publicnode.com',
+                'https://rpc.builder0x69.io',
+                'https://eth.meowrpc.com',
+                'https://eth.drpc.org'
+            ]
+            
+            for url in fallback_urls:
+                try:
+                    self.w3 = Web3(Web3.HTTPProvider(url))
+                    if self.w3.is_connected():
+                        print(f"Connected to Ethereum network via {url}")
+                        break
+                except Exception:
+                    continue
+            
+            if not self.w3.is_connected():
+                raise Exception("Failed to connect to any Ethereum RPC endpoint")
         
         # Initialize Etherscan API
         self.etherscan_api_key = os.getenv('ETHERSCAN_API_KEY')
